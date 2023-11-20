@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  spring-boot-app:
+    image: thirionjwf/leadgen-api:latest # Replace with your image name
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-server:5432/leadgen
+      - DB_USERNAME=lguser
+      - DB_PASSWORD=p@55w0rd
+
+  postgres-server:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: leadgen
+      POSTGRES_USER: lguser
+      POSTGRES_PASSWORD: p@55w0rd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    command: postgres -c listen_addresses='*'
+
+volumes:
+  postgres-data:
