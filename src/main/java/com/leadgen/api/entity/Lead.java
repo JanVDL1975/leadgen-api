@@ -1,19 +1,13 @@
 package com.leadgen.api.entity;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import javax.persistence.Column;
-import javax.persistence.ManyToOne;
-import javax.persistence.JoinColumn;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import javax.persistence.*;
+
+import lombok.*;
 
 @Entity
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "leads")
 public class Lead {
     @Id
@@ -26,7 +20,10 @@ public class Lead {
     @Column(columnDefinition = "TEXT")
     private String message;
 
-    @ManyToOne
-    @JoinColumn(name = "item_id")
+    @ManyToOne(cascade = CascadeType.ALL) // or CascadeType.REMOVE, CascadeType.PERSIST, etc., based on your requirements
+    @JoinColumn(name = "item_id", referencedColumnName = "id")
     private Item item;
+
+
+
 }

@@ -35,8 +35,9 @@ public class LeadController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteLead(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deleteLead(@PathVariable("id") Long id) {
         leadServiceImpl.deleteLead(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/create")
