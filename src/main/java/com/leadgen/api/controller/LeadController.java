@@ -3,6 +3,7 @@ package com.leadgen.api.controller;
 import com.leadgen.api.entity.Lead;
 import com.leadgen.api.service.LeadServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.List;
 
-import static com.leadgen.api.constants.ApplicationConstants.LEAD_CONTROLLER_ERROR;
+import static com.leadgen.api.constants.ApplicationConstants.*;
 
 @RestController
 @RequestMapping("/api/leads")
@@ -35,9 +36,31 @@ public class LeadController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteLead(@PathVariable("id") Long id) {
-        leadServiceImpl.deleteLead(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<String> deleteLead(@PathVariable("id") Long id) {
+        try {
+            Optional<Lead> optionalValReturned = leadServiceImpl.getLeadById(id);
+
+            // Available to delete in first place
+            if(optionalValReturned.isPresent()) {
+                // Delete
+                leadServiceImpl.deleteLead(id);
+
+                // Verify it was deleted
+                optionalValReturned = leadServiceImpl.getLeadById(id);
+                if(optionalValReturned.isEmpty()) {
+                    return new ResponseEntity<>(LEAD_CONTROLLER_DELETE_SUCCESS, HttpStatus.OK);
+                }
+            }
+            else {
+                return new ResponseEntity<>(LEAD_CONTROLLER_NO_LEAD_TO_DELETE, HttpStatus.BAD_REQUEST);
+            }
+
+        } catch (EmptyResultDataAccessException e) {
+            return new ResponseEntity<>(LEAD_CONTROLLER_NO_LEAD_TO_DELETE, HttpStatus.BAD_REQUEST);
+        } catch (Exception exc) {
+            return new ResponseEntity<>(LEAD_CONTROLLER_ERROR + exc.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity<>(LEAD_CONTROLLER_DELETE_SUCCESS, HttpStatus.OK);
     }
 
     @PostMapping("/create")
@@ -49,10 +72,10 @@ public class LeadController {
             String result = leadServiceImpl.createLead(itemId, leadId);
 
             return new ResponseEntity<>(result, HttpStatus.CREATED);
-        } catch (NumberFormatException e) {
-            return new ResponseEntity<>("Invalid itemId or leadId format", HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>(LEAD_CONTROLLER_ERROR  + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (NumberFormatException nfe) {
+            return new ResponseEntity<>(LEAD_CONTROLLER_FORMATTING_ERROR, HttpStatus.BAD_REQUEST);
+        } catch (Exception exc) {
+            return new ResponseEntity<>(LEAD_CONTROLLER_ERROR + exc.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

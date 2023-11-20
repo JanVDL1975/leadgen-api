@@ -12,11 +12,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.util.*;
 
+import static com.leadgen.api.constants.ApplicationConstants.LEAD_CONTROLLER_DELETE_SUCCESS;
+import static com.leadgen.api.constants.ApplicationConstants.LEAD_CONTROLLER_NO_LEAD_TO_DELETE;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -55,7 +60,7 @@ public class LeadControllerTests {
         Lead lead5 = new Lead(random.nextLong(), randomString(), randomString(), randomEmail(), randomString(), randomString(), new Item(random.nextLong(), randomString(), randomString(), randomString(), randomString(), randomString(), "http://www.google.com/image.jpg", true));
 
         List<Lead> leads = Arrays.asList(lead1, lead2, lead4, lead5);
-        Mockito.when(leadService.getAllLeads()).thenReturn(leads);
+        when(leadService.getAllLeads()).thenReturn(leads);
 
         // Act & Assert
         mockMvc.perform(get("/api/leads"))
@@ -130,7 +135,7 @@ public class LeadControllerTests {
         // Arrange
         Lead lead = new Lead(random.nextLong(), randomString(), randomString(), randomEmail(), randomString(), randomString(), null);
         Optional<Lead> leadOptional = Optional.of(lead);
-        Mockito.when(leadService.getLeadById(anyLong())).thenReturn(leadOptional);
+        when(leadService.getLeadById(anyLong())).thenReturn(leadOptional);
 
         // Act & Assert
         mockMvc.perform(get("/api/leads/{id}", lead.getId()))
@@ -150,7 +155,7 @@ public class LeadControllerTests {
         // Arrange
         Lead leadToSave = new Lead(null, randomString(), randomString(), randomEmail(), randomString(), randomString(), null);
         Lead savedLead = new Lead(random.nextLong(), leadToSave.getFirstName(), leadToSave.getLastName(), leadToSave.getEmail(), leadToSave.getPhone(), leadToSave.getMessage(), null);
-        Mockito.when(leadService.saveLead(any(Lead.class))).thenReturn(savedLead);
+        when(leadService.saveLead(any(Lead.class))).thenReturn(savedLead);
 
         // Act & Assert
         mockMvc.perform(post("/api/leads")
@@ -168,13 +173,41 @@ public class LeadControllerTests {
     }
 
     @Test
-    public void deleteLead_ReturnsNoContent() throws Exception {
+    public void deleteLead_ReturnsSuccess() throws Exception {
         // Arrange
-        Long leadId = random.nextLong();
+        Long leadId = 1L;
+        Optional<Lead> mockLead = Optional.of(new Lead());
+
+        when(leadService.getLeadById(leadId)).thenReturn(mockLead);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/leads/{id}", leadId))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(MockMvcRequestBuilders
+                        .delete("/api/leads/{id}", leadId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.content().string(LEAD_CONTROLLER_DELETE_SUCCESS));
+
+        // Verify that the deleteLead method was called with the correct ID
+        verify(leadService, times(1)).deleteLead(leadId);
+    }
+
+    @Test
+    public void deleteLead_ReturnsBadRequestWhenLeadNotFound() throws Exception {
+        // Arrange
+        Long leadId = 1L;
+        Optional<Lead> mockLead = Optional.empty();
+
+        when(leadService.getLeadById(leadId)).thenReturn(mockLead);
+
+        // Act & Assert
+        mockMvc.perform(MockMvcRequestBuilders
+                        .delete("/api/leads/{id}", leadId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.content().string(LEAD_CONTROLLER_NO_LEAD_TO_DELETE));
+
+        // Verify that the deleteLead method was not called
+        verify(leadService, never()).deleteLead(leadId);
     }
 
     @Test
@@ -192,7 +225,7 @@ public class LeadControllerTests {
 
         // Arrange
         Lead createdLead = new Lead(random.nextLong(), (String) payload.get("firstName"), (String) payload.get("lastName"), (String) payload.get("email"), (String) payload.get("phone"), (String) payload.get("message"), null);
-        Mockito.when(leadService.createLead(anyLong(), anyLong())).thenReturn(String.valueOf(createdLead));
+        when(leadService.createLead(anyLong(), anyLong())).thenReturn(String.valueOf(createdLead));
 
         // Act & Assert
         mockMvc.perform(post("/api/leads/create")
